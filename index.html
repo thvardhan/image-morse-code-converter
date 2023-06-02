@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <title>Morse code!</title>
+</head>
+<body>
+
+<style>
+    #input_canvas {
+        max-width: 300px;
+        max-height: 300px;
+        border: 1px solid black;
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    #output_canvas {
+        max-width: 300px;
+        max-height: 300px;
+        border: 1px solid black;
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    canvas {
+        display: block;
+        margin: 0 auto;
+    }
+</style>
+
+    <div class="container text-center">
+        <img src="./degen.jpg" style="position: fixed;z-index: 0;bottom: 0;left:0;margin-bottom: -37px;" alt="">
+        <div style="position: relative;z-index: 2;">
+    <h1>Image to Morse Code converter</h1>
+    <h6>Have you ever tried transmitting an image over audio but facing difficulty? Worry no more as I've made this wonderful converter that converts an image into morse code that can be transmitted over audio</h6>
+        </div>
+
+        <h3>Encoder</h3>
+        <div class="row">
+            <div class="col-12">
+                <input onchange="image_added(event)" type="file" accept="image/png" placeholder="Image file" class="form-control">
+            </div>
+        </div>
+        <canvas id="input_canvas"></canvas>
+        <h3>Decoder</h3>
+        <div class="row">
+            <div class="col-12">
+                <input onchange="file_added(event)" type="file" placeholder="text containing morse" class="form-control">
+
+            </div>
+<!--            <div class="col-6">-->
+<!--                <button class="btn btn-primary">Download file</button>-->
+<!--            </div>-->
+        </div>
+        <canvas id="output_canvas"></canvas>
+
+
+    </div>
+<!-- Option 1: Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
+    <script>
+        function getBase64(file) {
+            var reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function () {
+                console.log(reader.result);
+            };
+            reader.onerror = function (error) {
+                console.log('Error: ', error);
+            };
+        }
+
+
+        function download(filename, text) {
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+
+            element.style.display = 'none';
+            document.body.appendChild(element);
+
+            element.click();
+
+            document.body.removeChild(element);
+        }
+
+        function file_added(e) {
+            // console.log(e.target.files[0])
+            // getBase64(e.target.files[0])
+
+            let canvas = document.getElementById('output_canvas')
+            let context = canvas.getContext('2d')
+
+            var reader = new FileReader();
+            reader.onload = function (event) {
+                if (typeof(wz) == "undefined") {
+                    wz = new Worker("decode.js");
+                    wz.postMessage(event.target.result)
+
+
+
+                    wz.onmessage = function(event){
+
+                        const data = event.data
+                        if(event.data.length===2){
+                            canvas.width = data[0];
+                            canvas.height = data[1];
+                            return
+                        }
+
+                        context.fillStyle = "rgba("+data[2]+","+data[3]+","+data[4]+","+(data[5]/255)+")";
+                        context.fillRect( data[0], data[1], 1, 1 );
+                        // console.log(event.data)
+                        // document.getElementById("floatingTextarea").value = event.data;
+                        // download("morse.txt",event.data)
+                    };
+                }
+            }
+            reader.readAsText(e.target.files[0]);
+
+
+            // context.drawImage(e.target.files[0],300,300)
+
+        }
+
+        function image_added(e) {
+            // console.log(e.target.files[0])
+            // getBase64(e.target.files[0])
+
+            let canvas = document.getElementById('input_canvas')
+            let context = canvas.getContext('2d')
+
+            var reader = new FileReader();
+            reader.onload = function (event) {
+                var img = new Image();
+                img.onload = function () {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.drawImage(img, 0, 0);
+                    let c = context.getImageData(0,0,img.width,img.height)
+
+                    if (typeof(w) == "undefined") {
+                        w = new Worker("worker.js");
+                        w.postMessage(c)
+                        w.onmessage = function(event){
+                            // console.log(event.data)
+                            // document.getElementById("floatingTextarea").value = event.data;
+                            download("morse.txt",event.data)
+                        };
+                    }
+
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(e.target.files[0]);
+
+
+            // context.drawImage(e.target.files[0],300,300)
+
+        }
+
+
+
+
+
+        // function render_image(e) {
+        //     console.log(e.target.files[0])
+        //     getBase64(e.target.files[0])
+        // }
+
+    </script>
+
+</body>
+</html>
